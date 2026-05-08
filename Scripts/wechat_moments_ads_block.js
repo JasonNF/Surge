@@ -2,8 +2,9 @@
  * Surge response script for WeChat ad JSON cleanup.
  *
  * This script targets JSON endpoints such as mp.weixin.qq.com/mp/getappmsgad.
- * WeChat Moments timeline traffic may use binary/encrypted payloads, so the
- * module also relies on URL rewrite and domain rejection rules.
+ * Native WeChat Moments timeline ads are commonly delivered inside binary or
+ * encrypted WeChat timeline traffic, so they cannot be reliably removed by
+ * this response script unless a matching JSON ad endpoint is captured.
  */
 
 const url = typeof $request !== "undefined" && $request.url ? $request.url : "";

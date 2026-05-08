@@ -1,12 +1,12 @@
-#!name=WeChat Moments Ad Block
-#!desc=Block common WeChat Moments and article ad endpoints. MITM is required for HTTPS URL rewrite/script rules.
+#!name=WeChat Ad Block
+#!desc=Blocks WeChat Official Account ads and common WeChat ad assets. Native Moments feed ads are often delivered inside encrypted WeChat timeline traffic and may not be removable by Surge alone.
 #!category=Ad Blocking
 #!system=ios
 
 [Rule]
 # WeChat ad delivery/reporting hosts.
-DOMAIN,ad.weixin.qq.com,REJECT
-DOMAIN,ad.wechat.com,REJECT
+DOMAIN-SUFFIX,ad.weixin.qq.com,REJECT
+DOMAIN-SUFFIX,ad.wechat.com,REJECT
 DOMAIN,wxsnsdy.wxs.qq.com,REJECT
 DOMAIN,wxsnsdythumb.wxs.qq.com,REJECT
 
@@ -19,6 +19,7 @@ DOMAIN,wxsnsdythumb.wxs.qq.com,REJECT
 
 # Common Moments/ad trace endpoints observed in WeChat traffic.
 ^https?:\/\/ad\.weixin\.qq\.com\/ - reject-dict
+^https?:\/\/wxsnsdy(?:thumb)?\.wxs\.qq\.com\/ - reject-img
 ^https?:\/\/[^\/]+\.weixin\.qq\.com\/.*(?:snsad|mmsnsad|adlog|adclick|adreport|ad_trace|advertisement|advert) - reject-dict
 
 [Script]
@@ -27,4 +28,4 @@ wechat_ad_json_cleaner = type=http-response,pattern=^https?:\/\/mp\.weixin\.qq\.
 
 [MITM]
 # Keep the MITM scope narrow. Add more hosts only after confirming them by capture.
-hostname = %APPEND% mp.weixin.qq.com, ad.weixin.qq.com
+hostname = %APPEND% mp.weixin.qq.com, ad.weixin.qq.com, wxsnsdy.wxs.qq.com, wxsnsdythumb.wxs.qq.com
