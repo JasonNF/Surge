@@ -1,0 +1,30 @@
+#!name=WeChat Moments Ad Block
+#!desc=Block common WeChat Moments and article ad endpoints. MITM is required for HTTPS URL rewrite/script rules.
+#!category=Ad Blocking
+#!system=ios
+
+[Rule]
+# WeChat ad delivery/reporting hosts.
+DOMAIN,ad.weixin.qq.com,REJECT
+DOMAIN,ad.wechat.com,REJECT
+DOMAIN,wxsnsdy.wxs.qq.com,REJECT
+DOMAIN,wxsnsdythumb.wxs.qq.com,REJECT
+
+[URL Rewrite]
+# Official account article ad payloads and reporting.
+^https?:\/\/mp\.weixin\.qq\.com\/mp\/getappmsgad - reject-dict
+^https?:\/\/mp\.weixin\.qq\.com\/mp\/advertisement_report - reject-dict
+^https?:\/\/mp\.weixin\.qq\.com\/mp\/ad_complaint - reject-dict
+^https?:\/\/mp\.weixin\.qq\.com\/mp\/ad_video_info - reject-dict
+
+# Common Moments/ad trace endpoints observed in WeChat traffic.
+^https?:\/\/ad\.weixin\.qq\.com\/ - reject-dict
+^https?:\/\/[^\/]+\.weixin\.qq\.com\/.*(?:snsad|mmsnsad|adlog|adclick|adreport|ad_trace|advertisement|advert) - reject-dict
+
+[Script]
+# Clean JSON ad payloads that are not fully blocked by URL Rewrite.
+wechat_ad_json_cleaner = type=http-response,pattern=^https?:\/\/mp\.weixin\.qq\.com\/mp\/getappmsgad,requires-body=1,max-size=1048576,script-path=https://raw.githubusercontent.com/JasonNF/Surge/main/Scripts/wechat_moments_ads_block.js,timeout=5
+
+[MITM]
+# Keep the MITM scope narrow. Add more hosts only after confirming them by capture.
+hostname = %APPEND% mp.weixin.qq.com, ad.weixin.qq.com
