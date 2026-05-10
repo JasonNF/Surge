@@ -1,0 +1,13 @@
+# Tailscale
+# Use with:
+# RULE-SET,https://raw.githubusercontent.com/JasonNF/surge/main/Rules/Tailscale.list,DIRECT
+
+PROCESS-NAME,Tailscale
+PROCESS-NAME,tailscaled
+PROCESS-NAME,io.tailscale.ipn.macsys.network-extension
+PROCESS-NAME,/Applications/Tailscale.app/Contents/MacOS/Tailscale
+PROCESS-NAME,/Library/SystemExtensions/*/io.tailscale.ipn.macsys.network-extension.systemextension/Contents/MacOS/io.tailscale.ipn.macsys.network-extension
+DOMAIN-SUFFIX,tailscale.com
+DOMAIN-SUFFIX,ts.net
+IP-CIDR,100.64.0.0/10,no-resolve
+IP-CIDR,100.100.100.100/32,no-resolve
