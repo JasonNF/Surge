@@ -1,5 +1,5 @@
 #!name=FanShu Unlock
-#!desc=帆书（原樊登读书）解锁讲书、课程、电子书和听书。已修复脚本地址、Base64/明文自适应、API 版本号匹配。
+#!desc=帆书解锁。调试：Surge→脚本→fdds/fdtk→日志；或看通知「帆书字段」
 #!category=Enhancement
 #!system=ios
 

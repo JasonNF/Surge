@@ -211,11 +211,19 @@
             body = serializeBody(root, parsed.encoded);
 
             if (DEBUG) {
-                let info = (parsed.encoded ? 'base64' : 'plain') + ' | ' + (url.split('.com/')[1] || url).substring(0, 100);
+                const path = (url.split('.com/')[1] || url).substring(0, 100);
+                const keys = Object.keys(d).slice(0, 20).join(',');
+
+                console.log('[FanShu-fdds]', matched, path);
+                console.log('[FanShu-fdds] format=' + (parsed.encoded ? 'base64' : 'plain'));
+                if (keys) console.log('[FanShu-fdds] keys=' + keys);
+
                 if (matched === 'content-response') {
-                    info += ' | keys=' + Object.keys(d).slice(0, 12).join(',');
+                    // 字段名单独一条通知，锁屏上比正文更容易看到
+                    $notification.post('帆书字段', keys || '(empty)', path);
                 }
-                $notification.post(NOTIFY_TITLE, matched, info);
+
+                $notification.post(NOTIFY_TITLE, matched, (parsed.encoded ? 'base64' : 'plain') + ' | ' + path);
             }
         } else if (DEBUG) {
             $notification.post(NOTIFY_TITLE, 'skip', (url.split('.com/')[1] || url).substring(0, 120));

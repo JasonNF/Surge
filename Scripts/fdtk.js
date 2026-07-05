@@ -68,12 +68,17 @@
             }
 
             if (DEBUG) {
+                const path = (url.split('.com/')[1] || url).substring(0, 100);
+                const reqKeys = Object.keys(parsed.obj || {}).join(',');
+
+                console.log('[FanShu-fdtk]', REPLACE_TOKEN ? 'replace' : 'keep', path);
+                console.log('[FanShu-fdtk] token=' + String(oldToken || ''));
+                console.log('[FanShu-fdtk] reqKeys=' + reqKeys);
+
                 $notification.post(
                     TITLE,
                     REPLACE_TOKEN ? 'token-replaced' : 'token-kept',
-                    (parsed.encoded ? 'base64' : 'plain') +
-                    ' | token=' + String(oldToken || '').substring(0, 32) +
-                    ' | ' + (url.split('.com/')[1] || url).substring(0, 100)
+                    String(oldToken || '').substring(0, 32) + ' | ' + path
                 );
             }
         } else if (DEBUG) {
