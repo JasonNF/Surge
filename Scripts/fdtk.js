@@ -8,8 +8,10 @@
     const DEBUG = true;
     const TITLE = '帆书-fdtk';
 
-    // 听书 token；失效时看 DEBUG 通知或 Surge 抓包后更新
-    const UNLOCK_TOKEN = '20250621ObJJtQHZpFRmK5uH1Jj';
+    // VIP 解锁 token：留空则不改请求（避免注入过期 token 导致播放失败）
+    // 若拿到新的可用 token，填到这里并设 REPLACE_TOKEN = true
+    const UNLOCK_TOKEN = '';
+    const REPLACE_TOKEN = !!UNLOCK_TOKEN;
 
     function getEncryptionFlag(headers) {
         headers = headers || {};
@@ -60,15 +62,17 @@
         if (body && /\/resource-orchestration-system\/book\/v\d+\/content/.test(url)) {
             const parsed = parseBody(body, headers);
             const oldToken = parsed.obj.token;
-            parsed.obj.token = UNLOCK_TOKEN;
-            body = serializeBody(parsed.obj, parsed.encoded);
+            if (REPLACE_TOKEN) {
+                parsed.obj.token = UNLOCK_TOKEN;
+                body = serializeBody(parsed.obj, parsed.encoded);
+            }
 
             if (DEBUG) {
                 $notification.post(
                     TITLE,
-                    'token',
+                    REPLACE_TOKEN ? 'token-replaced' : 'token-kept',
                     (parsed.encoded ? 'base64' : 'plain') +
-                    ' | old=' + String(oldToken || '').substring(0, 24) +
+                    ' | token=' + String(oldToken || '').substring(0, 32) +
                     ' | ' + (url.split('.com/')[1] || url).substring(0, 100)
                 );
             }

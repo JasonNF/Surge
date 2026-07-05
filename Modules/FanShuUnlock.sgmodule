@@ -5,10 +5,10 @@
 
 [Script]
 # 帆书 - 解锁 myPage / program / course / ebook / content 响应
-fanshu_unlock_response = type=http-response,pattern=^https?:\/\/[^/]+\.dushu365\.com\/(sns-orchestration-system\/homePage\/api\/v\d+\/myPage|smart-orch\/program|smart-orch\/course\/v\d+\/info|innovation-orchestration\/api\/ebook\/v\d+\/ebookInfo|resource-orchestration-system\/book\/v\d+\/content),requires-body=true,max-size=2097152,timeout=30,script-path=https://raw.githubusercontent.com/JasonNF/Surge/cursor/fix-fanshu-unlock-scripts-ad3a/Scripts/fdds.js
+fanshu_unlock_response = type=http-response,pattern=^https?:\/\/[^/]+\.dushu365\.com\/(sns-orchestration-system\/homePage\/api\/v\d+\/myPage|smart-orch\/program|smart-orch\/course\/v\d+\/info|innovation-orchestration\/api\/ebook\/v\d+\/ebookInfo|resource-orchestration-system\/book\/v\d+\/content(?:\/part)?|resource-orchestration-system\/book\/channel\/v\d+\/info),requires-body=true,max-size=2097152,timeout=30,script-path=https://raw.githubusercontent.com/JasonNF/Surge/cursor/fix-fanshu-unlock-scripts-ad3a/Scripts/fdds.js
 
-# 帆书 - 解锁听书/正文请求 token
-fanshu_unlock_request = type=http-request,pattern=^https?:\/\/[^/]+\.dushu365\.com\/resource-orchestration-system\/book\/v\d+\/content,requires-body=true,max-size=2097152,timeout=30,script-path=https://raw.githubusercontent.com/JasonNF/Surge/cursor/fix-fanshu-unlock-scripts-ad3a/Scripts/fdtk.js
+# 帆书 - 听书请求（默认保留客户端 token，避免注入过期 VIP token）
+fanshu_unlock_request = type=http-request,pattern=^https?:\/\/[^/]+\.dushu365\.com\/resource-orchestration-system\/book\/v\d+\/content(?:\/part)?,requires-body=true,max-size=2097152,timeout=30,script-path=https://raw.githubusercontent.com/JasonNF/Surge/cursor/fix-fanshu-unlock-scripts-ad3a/Scripts/fdtk.js
 
 [MITM]
 hostname = %APPEND% *.dushu365.com, dushu365.com, gw1.dushu365.com, gw2.dushu365.com

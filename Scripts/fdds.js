@@ -135,7 +135,47 @@
         patchCommonVipFields(d, 0);
     }
 
+    function unlockContentNode(node, depth) {
+        if (!node || typeof node !== 'object' || depth > 10) return;
+
+        if (Array.isArray(node)) {
+            for (const item of node) unlockContentNode(item, depth + 1);
+            return;
+        }
+
+        const zeroKeys = [
+            'trialDuration', 'trialTime', 'durationLimit', 'limitDuration',
+            'maxTrialDuration', 'remainTrialTime', 'tryDuration', 'tryTime',
+            'lockType', 'authType', 'payStatus', 'saleStatus', 'unlockType'
+        ];
+        const trueKeys = [
+            'canPlay', 'canListen', 'canRead', 'paid', 'purchased', 'hasPermission',
+            'allowPlay', 'fullVersion', 'playFlag', 'listenFlag', 'showFlag',
+            'free', 'unlocked', 'hasBought', 'isBought', 'isBuyed'
+        ];
+        const falseKeys = ['isTrial', 'needPay', 'needBuy', 'locked', 'lockFlag', 'trial'];
+
+        for (const key of zeroKeys) {
+            if (node[key] !== undefined) node[key] = 0;
+        }
+        for (const key of trueKeys) {
+            if (node[key] !== undefined) node[key] = true;
+        }
+        for (const key of falseKeys) {
+            if (node[key] !== undefined) node[key] = false;
+        }
+        if (node.permissionType !== undefined) node.permissionType = 2;
+        if (node.status === 'trial' || node.status === 'lock') node.status = 'paid';
+
+        if (node.compBanner !== undefined) delete node.compBanner;
+
+        for (const value of Object.values(node)) {
+            if (value && typeof value === 'object') unlockContentNode(value, depth + 1);
+        }
+    }
+
     function unlockBookContent(d) {
+        unlockContentNode(d, 0);
         patchCommonVipFields(d, 0);
     }
 
@@ -171,11 +211,11 @@
             body = serializeBody(root, parsed.encoded);
 
             if (DEBUG) {
-                $notification.post(
-                    NOTIFY_TITLE,
-                    matched,
-                    (parsed.encoded ? 'base64' : 'plain') + ' | ' + (url.split('.com/')[1] || url).substring(0, 120)
-                );
+                let info = (parsed.encoded ? 'base64' : 'plain') + ' | ' + (url.split('.com/')[1] || url).substring(0, 100);
+                if (matched === 'content-response') {
+                    info += ' | keys=' + Object.keys(d).slice(0, 12).join(',');
+                }
+                $notification.post(NOTIFY_TITLE, matched, info);
             }
         } else if (DEBUG) {
             $notification.post(NOTIFY_TITLE, 'skip', (url.split('.com/')[1] || url).substring(0, 120));
