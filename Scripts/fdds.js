@@ -5,8 +5,8 @@
 (function () {
     'use strict';
 
-    const DEBUG = true;
-    const SCRIPT_VERSION = 'v1.6';
+    const DEBUG = false;
+    const SCRIPT_VERSION = 'v1.8';
     const NOTIFY_TITLE = '帆书-fdds ' + SCRIPT_VERSION;
 
     function getEncryptionFlag(headers) {
@@ -50,6 +50,16 @@
         return encoded ? encodeBase64(obj) : JSON.stringify(obj);
     }
 
+    function isMediaUrl(value) {
+        return typeof value === 'string'
+            && /^https?:\/\//.test(value)
+            && /\.(mp3|m4a|aac|m3u8|mp4)(\?|$)/i.test(value);
+    }
+
+    function isTrialMediaUrl(value) {
+        return isMediaUrl(value) && /\/(trial|try|preview|sample)\//i.test(value);
+    }
+
     function patchCommonVipFields(node, depth) {
         if (!node || typeof node !== 'object' || depth > 8) return;
 
@@ -61,8 +71,8 @@
         const boolTrue = ['isVip', 'isVIP', 'hasVip', 'vip', 'feifanVip', 'paid', 'isPaid',
             'hasBought', 'isBought', 'isBuyed', 'unlock', 'unlocked', 'access', 'permission',
             'canRead', 'canWatch', 'canPlay', 'canListen', 'showFlag', 'playFlag', 'listenFlag',
-            'trialWatch', 'free'];
-        const boolFalse = ['isTrial', 'freeTrial', 'locked', 'lock', 'needPay', 'needBuy'];
+            'trialWatch', 'free', 'vipReading'];
+        const boolFalse = ['isTrial', 'freeTrial', 'locked', 'lock', 'needPay', 'needBuy', 'hasSample', 'audition'];
         const expireFields = ['vipExpireTime', 'vipEndTime', 'feifanVipEndTime', 'expireTime', 'expire'];
         const zeroFields = ['originalPrice', 'sellPrice', 'payStatus', 'saleStatus'];
 
@@ -107,11 +117,15 @@
                 item.showFlag = true;
                 item.playFlag = true;
                 item.listenFlag = true;
+                item.hasSample = false;
+                item.vipReading = true;
+                promoteAudioUrls(item, 0);
             }
         }
         d.free = true;
         d.isBuyed = true;
         patchCommonVipFields(d, 0);
+        promoteAudioUrls(d, 0);
     }
 
     function unlockCourseInfo(d) {
@@ -123,9 +137,12 @@
                 item.permissionType = 2;
                 item.trialWatch = true;
                 item.canWatch = true;
+                item.audition = false;
+                promoteAudioUrls(item, 0);
             }
         }
         patchCommonVipFields(d, 0);
+        promoteAudioUrls(d, 0);
     }
 
     function unlockEbookInfo(d) {
@@ -152,9 +169,9 @@
         const trueKeys = [
             'canPlay', 'canListen', 'canRead', 'paid', 'purchased', 'hasPermission',
             'allowPlay', 'fullVersion', 'playFlag', 'listenFlag', 'showFlag',
-            'free', 'unlocked', 'hasBought', 'isBought', 'isBuyed'
+            'free', 'unlocked', 'hasBought', 'isBought', 'isBuyed', 'vipReading'
         ];
-        const falseKeys = ['isTrial', 'needPay', 'needBuy', 'locked', 'lockFlag', 'trial'];
+        const falseKeys = ['isTrial', 'needPay', 'needBuy', 'locked', 'lockFlag', 'trial', 'hasSample', 'audition'];
 
         for (const key of zeroKeys) {
             if (node[key] !== undefined) node[key] = 0;
@@ -175,13 +192,145 @@
         }
     }
 
+    function collectFullMediaUrls(node, depth, bucket) {
+        if (!node || typeof node !== 'object' || depth > 16) return;
+
+        if (Array.isArray(node)) {
+            for (const item of node) collectFullMediaUrls(item, depth + 1, bucket);
+            return;
+        }
+
+        for (const key of [
+            'fullLink', 'fullAudioUrl', 'fullAudio', 'fullUrl', 'completeUrl',
+            'originUrl', 'mediaFullUrl', 'audioFullUrl', 'playFullUrl'
+        ]) {
+            const value = node[key];
+            if (isMediaUrl(value) && !isTrialMediaUrl(value)) bucket.push(value);
+        }
+
+        for (const value of Object.values(node)) {
+            if (value && typeof value === 'object') collectFullMediaUrls(value, depth + 1, bucket);
+        }
+    }
+
+    function promoteAudioUrls(node, depth) {
+        if (!node || typeof node !== 'object' || depth > 16) return;
+
+        if (Array.isArray(node)) {
+            for (const item of node) promoteAudioUrls(item, depth + 1);
+            return;
+        }
+
+        // 1=试听 2=完整（开放平台约定）
+        for (const key of ['type', 'linkType', 'playType', 'resourceType', 'mediaType', 'authType']) {
+            if (node[key] === 1) node[key] = 2;
+        }
+        if (node.businessType === 1) node.businessType = 2;
+
+        const fullDuration = node.fullAudioTime || node.fullVideoTime || node.fullLinkTime
+            || node.fullDuration || node.totalDuration || node.duration || node.audioDuration
+            || node.mediaDuration;
+        const tryDuration = node.tryAudioTime || node.tryVideoTime || node.tryDuration
+            || node.trialDuration || node.trialTime;
+
+        for (const key of [
+            'trialDuration', 'trialTime', 'tryAudioTime', 'tryVideoTime', 'tryDuration',
+            'previewDuration', 'listenDuration', 'limitDuration', 'durationLimit',
+            'maxTrialDuration', 'remainTrialTime', 'tryTime'
+        ]) {
+            if (typeof node[key] === 'number' && node[key] > 0 && node[key] <= 900) {
+                node[key] = fullDuration || 999999;
+            }
+        }
+
+        const fullUrl = node.fullLink || node.fullAudioUrl || node.fullAudio || node.fullUrl
+            || node.completeUrl || node.originUrl || node.mediaFullUrl || node.audioFullUrl
+            || node.playFullUrl;
+
+        if (fullUrl && typeof fullUrl === 'string' && !isTrialMediaUrl(fullUrl)) {
+            for (const key of [
+                'url', 'audioUrl', 'playUrl', 'mediaUrl', 'streamUrl', 'src',
+                'tryAudio', 'tryVideo', 'trialUrl', 'previewUrl', 'link', 'mp3Url', 'm3u8Url'
+            ]) {
+                if (node[key] !== undefined) node[key] = fullUrl;
+            }
+            if (typeof fullDuration === 'number' && fullDuration > 0) {
+                node.tryAudioTime = fullDuration;
+                node.tryVideoTime = fullDuration;
+            }
+        } else if (typeof fullDuration === 'number' && typeof tryDuration === 'number'
+            && fullDuration > tryDuration && tryDuration > 0 && tryDuration <= 900) {
+            // 仅有试听链接时，把 UI 时长拉到完整值（实际音频仍受 CDN 限制）
+            node.tryAudioTime = fullDuration;
+            node.tryVideoTime = fullDuration;
+        }
+
+        node.hasSample = false;
+        node.audition = false;
+        node.vipReading = true;
+
+        for (const value of Object.values(node)) {
+            if (value && typeof value === 'object') promoteAudioUrls(value, depth + 1);
+        }
+    }
+
+    function applyCollectedFullUrls(root) {
+        const bucket = [];
+        collectFullMediaUrls(root, 0, bucket);
+        if (!bucket.length) return { hasFullLink: false, fullCount: 0, hasTryAudio: false };
+
+        const fullUrl = bucket[0];
+        const applyTo = (node, depth) => {
+            if (!node || typeof node !== 'object' || depth > 16) return;
+            if (Array.isArray(node)) {
+                for (const item of node) applyTo(item, depth + 1);
+                return;
+            }
+            for (const key of [
+                'url', 'audioUrl', 'playUrl', 'mediaUrl', 'streamUrl', 'src',
+                'tryAudio', 'tryVideo', 'trialUrl', 'previewUrl', 'link', 'mp3Url', 'm3u8Url'
+            ]) {
+                if (isTrialMediaUrl(node[key]) || node[key] === undefined) node[key] = fullUrl;
+            }
+            for (const value of Object.values(node)) {
+                if (value && typeof value === 'object') applyTo(value, depth + 1);
+            }
+        };
+        applyTo(root, 0);
+        return { hasFullLink: true, fullCount: bucket.length, hasTryAudio: true };
+    }
+
+    function scanMediaDiagnostics(node, depth, stats) {
+        if (!node || typeof node !== 'object' || depth > 16) return;
+
+        if (Array.isArray(node)) {
+            for (const item of node) scanMediaDiagnostics(item, depth + 1, stats);
+            return;
+        }
+
+        for (const [key, value] of Object.entries(node)) {
+            if (typeof value === 'string' && isMediaUrl(value)) {
+                if (isTrialMediaUrl(value) || /try/i.test(key)) stats.tryCount += 1;
+                if (/full/i.test(key) || (!isTrialMediaUrl(value) && /\/media\//i.test(value))) stats.fullCount += 1;
+            }
+        }
+
+        for (const value of Object.values(node)) {
+            if (value && typeof value === 'object') scanMediaDiagnostics(value, depth + 1, stats);
+        }
+    }
+
     function unlockBookContent(d) {
+        if (d.businessType === 1) d.businessType = 2;
+
         if (d.bookInfo && typeof d.bookInfo === 'object') {
             d.bookInfo.isBought = true;
             d.bookInfo.hasBought = true;
             d.bookInfo.paid = true;
             d.bookInfo.canPlay = true;
             d.bookInfo.canListen = true;
+            d.bookInfo.vipReading = true;
+            promoteAudioUrls(d.bookInfo, 0);
             unlockContentNode(d.bookInfo, 0);
         }
         if (d.audioInfo && typeof d.audioInfo === 'object') {
@@ -189,18 +338,21 @@
             d.audioInfo.canListen = true;
             d.audioInfo.isTrial = false;
             d.audioInfo.trial = false;
-            if (d.audioInfo.trialDuration !== undefined) d.audioInfo.trialDuration = 999999;
-            if (d.audioInfo.durationLimit !== undefined) d.audioInfo.durationLimit = 0;
+            d.audioInfo.vipReading = true;
+            promoteAudioUrls(d.audioInfo, 0);
             unlockContentNode(d.audioInfo, 0);
         }
         if (Array.isArray(d.bookComponent)) {
             for (const comp of d.bookComponent) {
+                promoteAudioUrls(comp, 0);
                 unlockContentNode(comp, 0);
                 if (comp && comp.compBanner !== undefined) delete comp.compBanner;
             }
         }
+        promoteAudioUrls(d, 0);
         unlockContentNode(d, 0);
         patchCommonVipFields(d, 0);
+        return applyCollectedFullUrls(d);
     }
 
     let body = $response.body || '';
@@ -212,6 +364,7 @@
         const root = parsed.obj;
         const d = root.data !== undefined ? root.data : root;
         let matched = '';
+        let mediaStats = null;
 
         if (/\/homePage\/api\/v\d+\/myPage/.test(url)) {
             unlockMyPage(d);
@@ -226,7 +379,7 @@
             unlockEbookInfo(d);
             matched = 'ebook';
         } else if (/\/resource-orchestration-system\/book\/v\d+\/content/.test(url)) {
-            unlockBookContent(d);
+            mediaStats = unlockBookContent(d);
             matched = 'content-response';
         }
 
@@ -243,6 +396,11 @@
                 if (keys) console.log('[FanShu-fdds] keys=' + keys);
 
                 if (matched === 'content-response') {
+                    const diag = { tryCount: 0, fullCount: 0 };
+                    scanMediaDiagnostics(d, 0, diag);
+                    const summary = (mediaStats && mediaStats.hasFullLink ? '有fullLink' : '无fullLink')
+                        + ' | try=' + diag.tryCount + ' full=' + diag.fullCount;
+                    $notification.post('帆书诊断 ' + SCRIPT_VERSION, summary, path);
                     $notification.post('帆书字段 ' + SCRIPT_VERSION, keys || '(empty)', path);
                 }
 
