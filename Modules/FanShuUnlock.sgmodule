@@ -1,12 +1,12 @@
-#!name=FanShu Unlock v1.5
-#!desc=帆书解锁 v1.5。针对 audioInfo/bookComponent/bookInfo 加强听书解锁。
+#!name=FanShu Unlock v1.6
+#!desc=帆书解锁 v1.6。若通知仍显示 v1.4：Surge→脚本→删除 fdds/fdtk→再装本模块→脚本页点更新。
 #!category=Enhancement
 #!system=ios
 
 [Script]
-fanshu_unlock_response = type=http-response,pattern=^https?:\/\/[^/]+\.dushu365\.com\/(sns-orchestration-system\/homePage\/api\/v\d+\/myPage|smart-orch\/program|smart-orch\/course\/v\d+\/info|innovation-orchestration\/api\/ebook\/v\d+\/ebookInfo|resource-orchestration-system\/book\/v\d+\/content(?:\/part)?|resource-orchestration-system\/book\/channel\/v\d+\/info),requires-body=true,max-size=2097152,timeout=30,script-path=https://raw.githubusercontent.com/JasonNF/Surge/cursor/fix-fanshu-unlock-scripts-ad3a/Scripts/fdds.js?v=1.5
+fanshu_unlock_response = type=http-response,pattern=^https?:\/\/[^/]+\.dushu365\.com\/(sns-orchestration-system\/homePage\/api\/v\d+\/myPage|smart-orch\/program|smart-orch\/course\/v\d+\/info|innovation-orchestration\/api\/ebook\/v\d+\/ebookInfo|resource-orchestration-system\/book\/v\d+\/content(?:\/part)?|resource-orchestration-system\/book\/channel\/v\d+\/info),requires-body=true,max-size=2097152,timeout=30,script-path=https://raw.githubusercontent.com/JasonNF/Surge/cursor/fix-fanshu-unlock-scripts-ad3a/Scripts/fdds.js?v=1.6-b3fa4cb
 
-fanshu_unlock_request = type=http-request,pattern=^https?:\/\/[^/]+\.dushu365\.com\/resource-orchestration-system\/book\/v\d+\/content(?:\/part)?,requires-body=true,max-size=2097152,timeout=30,script-path=https://raw.githubusercontent.com/JasonNF/Surge/cursor/fix-fanshu-unlock-scripts-ad3a/Scripts/fdtk.js?v=1.5
+fanshu_unlock_request = type=http-request,pattern=^https?:\/\/[^/]+\.dushu365\.com\/resource-orchestration-system\/book\/v\d+\/content(?:\/part)?,requires-body=true,max-size=2097152,timeout=30,script-path=https://raw.githubusercontent.com/JasonNF/Surge/cursor/fix-fanshu-unlock-scripts-ad3a/Scripts/fdtk.js?v=1.6-b3fa4cb
 
 [MITM]
 hostname = %APPEND% *.dushu365.com, dushu365.com, gw1.dushu365.com, gw2.dushu365.com

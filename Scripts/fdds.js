@@ -6,7 +6,7 @@
     'use strict';
 
     const DEBUG = true;
-    const SCRIPT_VERSION = 'v1.4';
+    const SCRIPT_VERSION = 'v1.6';
     const NOTIFY_TITLE = '帆书-fdds ' + SCRIPT_VERSION;
 
     function getEncryptionFlag(headers) {
