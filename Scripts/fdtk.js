@@ -6,7 +6,7 @@
     'use strict';
 
     const DEBUG = true;
-    const SCRIPT_VERSION = 'v1.4';
+    const SCRIPT_VERSION = 'v1.5';
     const TITLE = '帆书-fdtk ' + SCRIPT_VERSION;
 
     // VIP 解锁 token：留空则不改请求（避免注入过期 token 导致播放失败）

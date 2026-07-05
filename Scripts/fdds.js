@@ -176,6 +176,29 @@
     }
 
     function unlockBookContent(d) {
+        if (d.bookInfo && typeof d.bookInfo === 'object') {
+            d.bookInfo.isBought = true;
+            d.bookInfo.hasBought = true;
+            d.bookInfo.paid = true;
+            d.bookInfo.canPlay = true;
+            d.bookInfo.canListen = true;
+            unlockContentNode(d.bookInfo, 0);
+        }
+        if (d.audioInfo && typeof d.audioInfo === 'object') {
+            d.audioInfo.canPlay = true;
+            d.audioInfo.canListen = true;
+            d.audioInfo.isTrial = false;
+            d.audioInfo.trial = false;
+            if (d.audioInfo.trialDuration !== undefined) d.audioInfo.trialDuration = 999999;
+            if (d.audioInfo.durationLimit !== undefined) d.audioInfo.durationLimit = 0;
+            unlockContentNode(d.audioInfo, 0);
+        }
+        if (Array.isArray(d.bookComponent)) {
+            for (const comp of d.bookComponent) {
+                unlockContentNode(comp, 0);
+                if (comp && comp.compBanner !== undefined) delete comp.compBanner;
+            }
+        }
         unlockContentNode(d, 0);
         patchCommonVipFields(d, 0);
     }
