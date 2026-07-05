@@ -2,96 +2,137 @@
  * 帆书解锁 - fdds 干净可维护版
  * 拦截：myPage / program / course-info / ebookInfo
  *
- * 【使用方法】
- *   1. DEBUG=true 时，脚本会把响应体里的 VIP 相关字段推送到通知
- *   2. 先看通知，确认字段名，然后修改下方 CONFIG 区
- *   3. 修改完后设 DEBUG=false，或保持 DEBUG=true 观察是否修改成功
- *
- * 【CONFIG 区】—— 根据实际响应体结构填写字段名
- *   VIP_FIELD    = 表示"已VIP"的布尔字段名（如 isVip）
- *   EXPIRE_FIELD = VIP到期时间字段名（如 vipExpireTime）
- *   TRIAL_FIELD = 试用/试听限制字段名（如 isTrial）
- *   如果不填或填错，脚本会在通知里提示"未找到字段"
+ * 修复说明（相对旧版）：
+ * 1. 响应体为 Base64 编码 JSON，需先解码再回写
+ * 2. URL 版本号改为匹配 v100/v101/v102...，不再写死 v100
+ * 3. 恢复上游解锁字段逻辑，并补充常见 VIP 字段兜底
  */
 (function () {
     'use strict';
 
-    const DEBUG       = true;
+    const DEBUG = false;
     const NOTIFY_TITLE = '帆书-fdds';
 
-    // ===== 在这里填实际的字段名（看完调试通知再改）=====
-    const VIP_FIELD    = '';   // 例：'isVip'
-    const EXPIRE_FIELD = '';   // 例：'vipExpireTime'
-    const TRIAL_FIELD  = '';   // 例：'isTrial'
-    // ================================================================
+    function decodeBody(raw) {
+        const text = new TextDecoder('utf-8').decode(
+            Uint8Array.from(atob(String(raw).replace(/=+$/, '')), (c) => c.charCodeAt(0))
+        );
+        return JSON.parse(text);
+    }
 
-    let body = $response.body || '';
-    let url  = $request.url  || '';
-    let api  = url.includes('myPage') ? 'myPage'
-               : url.includes('program') ? 'program'
-               : url.includes('course') ? 'course-info'
-               : 'ebookInfo';
+    function encodeBody(obj) {
+        const bytes = new TextEncoder().encode(JSON.stringify(obj));
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        return btoa(binary);
+    }
 
-    try {
-        let data = JSON.parse(body);
-        let d    = data.data || data;
-        let info = '';
+    function patchCommonVipFields(node, depth) {
+        if (!node || typeof node !== 'object' || depth > 6) return;
 
-        if (DEBUG) {
-            // 扫一遍常见 VIP 字段，打印实际值
-            let candidates = ['isVip','vip','isVIP','hasVip','vipType',
-                           'vipExpireTime','expireTime','expire',
-                           'subscribe','isSubscribe','paid','isPaid',
-                           'unlock','unlocked','access','permission',
-                           'trial','isTrial','isFree','freeTrial'];
-            let found = [];
-            for (let f of candidates) {
-                if (d[f] !== undefined) found.push(f + '=' + JSON.stringify(d[f]));
-            }
-            if (found.length) {
-                info = '找到字段: ' + found.join(' | ');
-            } else {
-                // 没找到候选字段，打印 data 前 300 字符
-                info = '未找到VIP字段! data.sample=' + JSON.stringify(d).substring(0, 300);
-            }
-            $notification.post(NOTIFY_TITLE, api, info.substring(0, 500));
+        if (Array.isArray(node)) {
+            for (const item of node) patchCommonVipFields(item, depth + 1);
+            return;
         }
 
-        // ===== 解锁逻辑 =====
-        let changed = [];
-        if (VIP_FIELD && d[VIP_FIELD] !== undefined) {
-            d[VIP_FIELD] = true;
-            changed.push(VIP_FIELD + '=true');
+        const boolTrue = ['isVip', 'isVIP', 'hasVip', 'vip', 'feifanVip', 'paid', 'isPaid',
+            'hasBought', 'isBought', 'isBuyed', 'unlock', 'unlocked', 'access', 'permission'];
+        const boolFalse = ['trial', 'isTrial', 'freeTrial'];
+        const expireFields = ['vipExpireTime', 'vipEndTime', 'feifanVipEndTime', 'expireTime', 'expire'];
+        const countFields = ['vipRemainDay', 'remainDays', 'vipStatus', 'vipType', 'vipLevel'];
+
+        for (const key of boolTrue) {
+            if (node[key] !== undefined) node[key] = true;
         }
-        if (EXPIRE_FIELD && d[EXPIRE_FIELD] !== undefined) {
-            d[EXPIRE_FIELD] = '2099-12-31 00:00:00';
-            changed.push(EXPIRE_FIELD + '=2099-12-31');
+        for (const key of boolFalse) {
+            if (node[key] !== undefined) node[key] = false;
         }
-        if (TRIAL_FIELD && d[TRIAL_FIELD] !== undefined) {
-            d[TRIAL_FIELD] = false;
-            changed.push(TRIAL_FIELD + '=false');
+        for (const key of expireFields) {
+            if (node[key] !== undefined) node[key] = '2099-12-31 23:59:59';
+        }
+        for (const key of countFields) {
+            if (node[key] !== undefined && typeof node[key] === 'number') node[key] = 9999;
         }
 
-        // 如果 data 是数组（program 接口可能返回列表）
-        if (Array.isArray(d)) {
-            for (let item of d) {
-                if (VIP_FIELD && item[VIP_FIELD] !== undefined) { item[VIP_FIELD] = true; changed.push('[数组]' + VIP_FIELD); }
-                if (TRIAL_FIELD && item[TRIAL_FIELD] !== undefined) { item[TRIAL_FIELD] = false; changed.push('[数组]' + TRIAL_FIELD); }
-            }
-        }
-
-        if (DEBUG && changed.length) {
-            $notification.post(NOTIFY_TITLE, api + '[已解锁]', changed.join(' | '));
-        }
-
-        if (data.data) { data.data = d; } else { data = d; }
-        body = JSON.stringify(data);
-
-    } catch (e) {
-        if (DEBUG) {
-            $notification.post(NOTIFY_TITLE, api + '[ERROR]', e.message.substring(0, 200));
+        for (const value of Object.values(node)) {
+            if (value && typeof value === 'object') patchCommonVipFields(value, depth + 1);
         }
     }
 
-    $done({ body: body });
+    function unlockMyPage(d) {
+        if (d.userInfo) {
+            d.userInfo.likeCount = 9999;
+            d.userInfo.followingCount = 9999;
+            d.userInfo.followerCount = 9999;
+        }
+        patchCommonVipFields(d, 0);
+    }
+
+    function unlockProgramInfo(d) {
+        if (Array.isArray(d.programList)) {
+            for (const item of d.programList) {
+                item.free = true;
+                item.trial = true;
+                item.unlockType = 2;
+            }
+        }
+        d.free = true;
+        d.isBuyed = true;
+        patchCommonVipFields(d, 0);
+    }
+
+    function unlockCourseInfo(d) {
+        d.originalPrice = '0';
+        d.sellPrice = '0';
+        d.hasBought = true;
+        if (Array.isArray(d.programList)) {
+            for (const item of d.programList) {
+                item.free = true;
+                item.trial = true;
+                item.unlock = true;
+            }
+        }
+        patchCommonVipFields(d, 0);
+    }
+
+    function unlockEbookInfo(d) {
+        d.isBought = true;
+        d.free = true;
+        d.isBuyed = true;
+        patchCommonVipFields(d, 0);
+    }
+
+    let body = $response.body || '';
+    const url = $request.url || '';
+
+    try {
+        const payload = decodeBody(body);
+        const root = payload;
+        const d = root.data !== undefined ? root.data : root;
+
+        if (/\/homePage\/api\/v\d+\/myPage(?:\?|$|\/)/.test(url)) {
+            unlockMyPage(d);
+        } else if (/\/smart-orch\/program\/v\d+\/info(?:\?|$|\/)/.test(url)) {
+            unlockProgramInfo(d);
+        } else if (/\/smart-orch\/course\/v\d+\/info(?:\?|$|\/)/.test(url)) {
+            unlockCourseInfo(d);
+        } else if (/\/ebook\/v\d+\/ebookInfo(?:\?|$|\/)/.test(url)) {
+            unlockEbookInfo(d);
+        } else if (/\/smart-orch\/program(?:\?|$|\/)/.test(url)) {
+            unlockProgramInfo(d);
+        }
+
+        if (root.data !== undefined) root.data = d;
+        body = encodeBody(root);
+
+        if (DEBUG) {
+            $notification.post(NOTIFY_TITLE, 'OK', url.split('.com/')[1] || url);
+        }
+    } catch (e) {
+        if (DEBUG) {
+            $notification.post(NOTIFY_TITLE, 'ERROR', String(e.message || e).substring(0, 200));
+        }
+    }
+
+    $done({ body });
 })();
