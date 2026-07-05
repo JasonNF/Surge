@@ -6,7 +6,8 @@
     'use strict';
 
     const DEBUG = true;
-    const TITLE = '帆书-fdtk';
+    const SCRIPT_VERSION = 'v1.4';
+    const TITLE = '帆书-fdtk ' + SCRIPT_VERSION;
 
     // VIP 解锁 token：留空则不改请求（避免注入过期 token 导致播放失败）
     // 若拿到新的可用 token，填到这里并设 REPLACE_TOKEN = true
@@ -77,8 +78,8 @@
 
                 $notification.post(
                     TITLE,
-                    REPLACE_TOKEN ? 'token-replaced' : 'token-kept',
-                    String(oldToken || '').substring(0, 32) + ' | ' + path
+                    REPLACE_TOKEN ? '已替换token' : '已保留token',
+                    SCRIPT_VERSION + ' | ' + String(oldToken || '').substring(0, 32)
                 );
             }
         } else if (DEBUG) {

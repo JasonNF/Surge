@@ -6,7 +6,8 @@
     'use strict';
 
     const DEBUG = true;
-    const NOTIFY_TITLE = '帆书-fdds';
+    const SCRIPT_VERSION = 'v1.4';
+    const NOTIFY_TITLE = '帆书-fdds ' + SCRIPT_VERSION;
 
     function getEncryptionFlag(headers) {
         headers = headers || {};
@@ -219,11 +220,14 @@
                 if (keys) console.log('[FanShu-fdds] keys=' + keys);
 
                 if (matched === 'content-response') {
-                    // 字段名单独一条通知，锁屏上比正文更容易看到
-                    $notification.post('帆书字段', keys || '(empty)', path);
+                    $notification.post('帆书字段 ' + SCRIPT_VERSION, keys || '(empty)', path);
                 }
 
-                $notification.post(NOTIFY_TITLE, matched, (parsed.encoded ? 'base64' : 'plain') + ' | ' + path);
+                $notification.post(
+                    NOTIFY_TITLE,
+                    matched === 'content-response' ? (keys || matched) : matched,
+                    (parsed.encoded ? 'base64' : 'plain') + ' | ' + path
+                );
             }
         } else if (DEBUG) {
             $notification.post(NOTIFY_TITLE, 'skip', (url.split('.com/')[1] || url).substring(0, 120));
