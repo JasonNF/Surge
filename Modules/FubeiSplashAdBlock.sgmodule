@@ -1,13 +1,11 @@
 #!name=Fubei Splash Ad Block
-#!desc=付呗开屏广告定位模块。第一阶段仅对付呗网关与开屏素材 OSS 启用窄范围 MITM；确认接口后在此模块内补精准拦截规则。
+#!desc=关闭付呗 com.fshows.lifecircle.launch.info 响应中的三项开屏广告开关，不影响支付、账单、首页导航或其他业务接口。
 #!category=Ad Blocking
 #!system=ios
 
 [Script]
-# Temporary capture phase. Remove after the precise startup API and response fields are identified.
-fubei_capture_request = type=http-request,pattern=^https:\/\/(?:fubeiappgw\.51youdian\.com|merchantapp-admin\.51youdian\.com|generalgw\.51fubei\.com|upc\.zztfly\.com|lifecircle-ark-public\.oss-cn-hangzhou\.aliyuncs\.com)\/,requires-body=true,max-size=1048576,script-path=https://raw.githubusercontent.com/JasonNF/Surge/main/Scripts/fubei_capture.js,timeout=5
-fubei_capture_response = type=http-response,pattern=^https:\/\/(?:fubeiappgw\.51youdian\.com|merchantapp-admin\.51youdian\.com|generalgw\.51fubei\.com|upc\.zztfly\.com)\/,requires-body=true,max-size=1048576,script-path=https://raw.githubusercontent.com/JasonNF/Surge/main/Scripts/fubei_capture.js,timeout=5
+fubei_splash_block = type=http-response,pattern=^https:\/\/fubeiappgw\.51youdian\.com\/newgateway$,requires-body=true,max-size=1048576,script-path=https://raw.githubusercontent.com/JasonNF/Surge/main/Scripts/fubei_splash_block.js,timeout=5
 
 [MITM]
-# Capture only. Do not reject whole hosts: they also carry normal app data and assets.
-hostname = %APPEND% fubeiappgw.51youdian.com, merchantapp-admin.51youdian.com, generalgw.51fubei.com, upc.zztfly.com, lifecircle-ark-public.oss-cn-hangzhou.aliyuncs.com
+# Keep MITM scope to the multiplexed API host; the script changes only matching launch-info payloads.
+hostname = %APPEND% fubeiappgw.51youdian.com
