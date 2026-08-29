@@ -1,0 +1,8 @@
+#!name=Fubei Splash Ad Block
+#!desc=付呗开屏广告定位模块。第一阶段仅对付呗网关与开屏素材 OSS 启用窄范围 MITM；确认接口后在此模块内补精准拦截规则。
+#!category=Ad Blocking
+#!system=ios
+
+[MITM]
+# Capture only. Do not reject the whole gateway or OSS host: both may carry normal app data.
+hostname = %APPEND% fubeiappgw.51youdian.com, lifecircle-ark-public.oss-cn-hangzhou.aliyuncs.com
