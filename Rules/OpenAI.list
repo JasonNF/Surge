@@ -1,0 +1,41 @@
+# OpenAI / ChatGPT
+# Use with (place BEFORE China / GEOIP / FINAL):
+# RULE-SET,https://raw.githubusercontent.com/JasonNF/surge/main/Rules/OpenAI.list,<OpenAI策略组>,extended-matching
+#
+# Common failure: only openai.com is listed, while login/app traffic uses
+# chatgpt.com / oaistatic.com / auth0 / arkose / statsig and then falls through
+# to GEOIP,CN,DIRECT or FINAL — so Rule mode never "hits" your OpenAI rule.
+
+# Desktop / process
+PROCESS-NAME,ChatGPT
+PROCESS-NAME,ChatGPT Helper
+
+# Core product domains
+DOMAIN-SUFFIX,openai.com
+DOMAIN-SUFFIX,chatgpt.com
+DOMAIN-SUFFIX,oaistatic.com
+DOMAIN-SUFFIX,oaiusercontent.com
+DOMAIN-SUFFIX,sora.com
+DOMAIN-SUFFIX,openaiapi-site.azureedge.net
+DOMAIN-SUFFIX,openaicom.imgix.net
+DOMAIN,chat.openai.com.cdn.cloudflare.net
+DOMAIN,openaicom-api-bdcpf8c6d2e9atf6.z01.azurefd.net
+DOMAIN,openaicomproductionae4b.blob.core.windows.net
+DOMAIN,production-openaicom-storage.azureedge.net
+DOMAIN-KEYWORD,openai
+
+# Login / anti-bot / feature flags (needed for ChatGPT login & app)
+DOMAIN,auth0.openai.com
+DOMAIN-SUFFIX,auth0.com
+DOMAIN,openai-api.arkoselabs.com
+DOMAIN-SUFFIX,client-api.arkoselabs.com
+DOMAIN,api.statsig.com
+DOMAIN,events.statsigapi.net
+DOMAIN-SUFFIX,featuregates.org
+DOMAIN-SUFFIX,chatgpt.livekit.cloud
+DOMAIN-SUFFIX,host.livekit.cloud
+DOMAIN-SUFFIX,turn.livekit.cloud
+
+# Optional billing / support CDN dependencies (can widen match scope)
+DOMAIN-SUFFIX,stripe.com
+DOMAIN-SUFFIX,identrust.com
