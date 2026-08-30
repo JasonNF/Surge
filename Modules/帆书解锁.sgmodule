@@ -1,18 +1,14 @@
 #!name=帆书解锁（干净版）
 #!author=MOSS
-#!description=樊登讲书+课程+电子书+听书解锁，干净可维护。DEBUG=true 抓字段，填进 CONFIG 区后生效。
-#!version=1.0
+#!description=樊登讲书+课程+电子书+听书解锁。已修复 Base64 响应体、API 版本号匹配和听书 URL 规则。
+#!version=1.1
 
 [MITM]
-hostname = *.dushu365.com
+hostname = *.dushu365.com, gw1.dushu365.com, gw2.dushu365.com
 
 [Script]
 # 脚本1：拦截 myPage / program / course-info / ebookInfo 响应
-# 【调试】DEBUG=true，看 iPhone 通知里的字段名，填进脚本 CONFIG 区
-# 【正式】填完 CONFIG 后设 DEBUG=false
-帆书解锁 = type=http-response,pattern=^https?://.+\.dushu365\.com/(sns-orchestration-system/homePage/api/v100/myPage|smart-orch/program|smart-orch/course/v100/info|innovation-orchestration/api/ebook/v100/ebookInfo),script-path=https://raw.githubusercontent.com/JasonNF/Surge/main/Scripts/fdds.js,requires-body=1,max-size=131072,debug=true
+帆书解锁 = type=http-response,pattern=^https?://.+\.dushu365\.com/(sns-orchestration-system/homePage/api/v\d+/myPage|smart-orch/program|smart-orch/course/v\d+/info|innovation-orchestration/api/ebook/v\d+/ebookInfo),script-path=https://raw.githubusercontent.com/JasonNF/Surge/main/Scripts/fdds.js,requires-body=1,max-size=1048576,timeout=10
 
-# 脚本2：拦截 content/part 请求（听书/音频权限）
-# 【调试】DEBUG=true，看通知里的请求参数，填进脚本 CONFIG 区
-# 【注意】如果权限在响应体里，把 type=http-request 改为 type=http-response
-帆书听书 = type=http-request,pattern=^https?://.+\.dushu365\.com/resource-orchestration-system/book/v101/content/part,script-path=https://raw.githubusercontent.com/JasonNF/Surge/main/Scripts/fdtk.js,requires-body=1,max-size=131072,debug=true
+# 脚本2：拦截 content 请求（听书/音频权限）
+帆书听书 = type=http-request,pattern=^https?://.+\.dushu365\.com/resource-orchestration-system/book/v\d+/content,script-path=https://raw.githubusercontent.com/JasonNF/Surge/main/Scripts/fdtk.js,requires-body=1,max-size=1048576,timeout=10
